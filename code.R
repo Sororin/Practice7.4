@@ -1,0 +1,56 @@
+library(tidyr)
+library(dplyr)
+
+
+rairuoho <- read.table("https://www.dipintothereef.com/uploads/3/7/3/5/37359245/rairuoho.txt",header=T, sep="\t", dec='.')
+
+
+rairuoho$treatment <- replace(rairuoho$treatment,rairuoho$treatment=="nutrient","enriched")
+
+rairuoho_day <- rairuoho %>% pivot_longer(day3:day8, names_to = "Day", values_to = "Length")
+
+rairuoho_day_spatial <- rairuoho_day %>% unite(Spatial, c("spatial1","spatial2"))
+
+rairuoho_day_spatial$row <- NULL
+rairuoho_day_spatial$column <- NULL
+
+rairuoho_final <- rairuoho_day_spatial
+
+
+# create two-sample t-test function
+my.t.test <- function(x, y) {
+  # Calculate the sample means and standard deviation
+  x_mean <- mean(x)
+  y_mean <- mean(y)
+  x_sd <- sd(x)
+  y_sd <- sd(y)
+  
+  # Calculate the degrees of freedom
+  x_n <- length(x)
+  y_n <- length(y)
+  df <- x_n + y_n - 2
+  
+  # Calculate the t statistic
+  t_statistic <- (x_mean - y_mean) / sqrt((x_sd^2 / x_n) + (y_sd^2 / y_n))
+  
+  # Calculate the p-value
+  p_value <- 2 * (1 - pt(abs(t_statistic), df))
+  
+  result <- cat(i,"t_statistic", t_statistic, "p_value", p_value, "\n")
+}
+
+days <- unique(rairuoho_final$Day)
+
+for (i in days) {
+  enriched <- subset(rairuoho_final,Day==i)%>%subset(treatment=="enriched")
+  enriched_length <- enriched$Length
+  
+  water<- subset(rairuoho_final,Day==i)%>%subset(treatment=="water")
+  water_length<- water$Length
+  
+  
+  my.t.test(enriched_length, water_length)
+}
+
+
+
